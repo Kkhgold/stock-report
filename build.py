@@ -42,6 +42,15 @@ FX = [
 ]
 
 
+COMMODITIES = [
+    ("GC=F", "🥇 금", "달러/온스"),
+    ("SI=F", "🥈 은", "달러/온스"),
+    ("HG=F", "🟠 구리", "달러/파운드"),
+    ("CL=F", "🛢 WTI 원유", "달러/배럴"),
+    ("BZ=F", "🛢 브렌트유", "달러/배럴"),
+]
+
+
 def fetch_fx():
     """원화 환율 = (원/달러) ÷ (통화/달러) × 단위 — 모든 통화를 같은 기준으로 계산"""
     usdkrw = dict(fetch_history("KRW=X"))
@@ -130,10 +139,11 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,B
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px}.grid2>*{min-width:0}
 html,body{overflow-x:hidden}td{word-break:keep-all}
 .chart-card{padding:16px 16px 10px}
-.ch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.ch-head{display:block}.ch-head .tabgrp{justify-content:flex-start;margin-top:10px}
 .ch-name{font-size:.9rem;color:var(--text-2);font-weight:600}
 .ch-price{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.15}
 .ch-chg{font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
+.tabgrp{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.tabs.iv button{min-width:34px}
 .tabs{display:flex;background:var(--chip);border-radius:10px;padding:3px;gap:2px}
 .tabs button{border:0;background:transparent;color:var(--text-2);font:inherit;font-size:.8rem;font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer;min-width:40px}
 .tabs button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -194,9 +204,12 @@ JS = r"""
 (function(){
 const DATA = JSON.parse(document.getElementById('chart-data').textContent);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const RANGES = {'1M':22,'3M':66,'6M':130,'1Y':9999};
+const RANGES = {D:{'1M':22,'3M':66,'6M':130,'1Y':9999}, W:{'1M':5,'3M':14,'6M':27,'1Y':9999}};
+const MA_N = {D:20, W:13}, MA_L = {D:'20일', W:'13주'};
+function weekly(arr){const out=[];let curKey=null;arr.forEach(p=>{const d=new Date(p[0]+'T00:00:00');const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));
+ const k=mon.toISOString().slice(0,10);if(k===curKey)out[out.length-1]=[p[0],p[1],k];else{out.push([p[0],p[1],k]);curKey=k;}});return out;}
 const fmt=(v,d=2)=>v.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
-let CUR='';const dg=v=>CUR.startsWith('fx:')?2:(v>=1000?0:2);
+let CUR='';const dg=v=>(CUR.startsWith('fx:')||CUR.startsWith('cm:'))?2:(v>=1000?0:2);
 const sgn=c=>c>0?'up':c<0?'down':'flat', arrow=c=>c>0?'▲':c<0?'▼':'';
 function ma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
 function niceTicks(lo,hi,c){const st0=(hi-lo)/c,m=Math.pow(10,Math.floor(Math.log10(st0)));const st=[1,2,2.5,5,10].map(k=>k*m).find(v=>v>=st0);const o=[];for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st)o.push(v);return o;}
@@ -210,8 +223,10 @@ function countUp(el,to,d){if(!el||isNaN(to))return;if(RM){el.textContent=fmt(to,
 function draw(host,key,range,animate){
  CUR=key;const full=DATA[key];const plot=host.querySelector('.plot');host.dataset.key=key;
  if(!full||full.length<2){plot.innerHTML='<p class="flat">차트 데이터 없음</p>';return;}
- const closes=full.map(p=>p[1]),m20f=ma(closes,20);
- const n=Math.min(RANGES[range],full.length),s=full.length-n,pts=full.slice(s),m20=m20f.slice(s);
+ const iv=host.dataset.iv||'D',ser=iv==='W'?weekly(full):full,maN=MA_N[iv];
+ const closes=ser.map(p=>p[1]),m20f=ma(closes,maN);
+ const n=Math.max(2,Math.min(RANGES[iv][range],ser.length)),s=ser.length-n,pts=ser.slice(s),m20=m20f.slice(s);
+ host.querySelectorAll('.ma-lbl').forEach(e=>e.textContent=MA_L[iv]+' 이동평균');
  const W=Math.max(260,Math.round(plot.clientWidth||600)),H=parseInt(getComputedStyle(plot).getPropertyValue('--h'))||220,L=4,R=60,T=10,B=24;
  const vals=pts.map(p=>p[1]).concat(m20.filter(v=>v!=null));let lo=Math.min(...vals),hi=Math.max(...vals);const pd=(hi-lo)*.08||1;lo-=pd;hi+=pd;
  const x=i=>L+(W-L-R)*(i/(n-1)),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
@@ -219,7 +234,10 @@ function draw(host,key,range,animate){
  const area=line+`L${x(n-1).toFixed(1)},${H-B}L${x(0).toFixed(1)},${H-B}Z`;
  let mp='';m20.forEach((v,i)=>{if(v!=null)mp+=(mp?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1);});
  const ticks=niceTicks(lo,hi,4),grid=ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${W-R+8}" y="${y(t)+4}" font-size="11" fill="var(--muted)">${fmt(t,t>=100?0:1)}</text>`).join('');
- const xl=[0,Math.floor((n-1)/2),n-1].map((i,k)=>`<text x="${x(i)}" y="${H-6}" font-size="11" fill="var(--muted)" text-anchor="${['start','middle','end'][k]}">${pts[i][0].slice(2).replace(/-/g,'/')}</text>`).join('');
+ const nt=W<420?3:5,idx=[...new Set(Array.from({length:nt},(_,k)=>Math.round(k*(n-1)/(nt-1))))];
+ const lab=i=>{const d=pts[i][0];return (n>60||range==='1Y')?d.slice(2,7).replace('-','/')+(iv==='W'?'':'/'+d.slice(8)):d.slice(5).replace('-','/');};
+ const xl=idx.map((i,k)=>`<line x1="${x(i)}" x2="${x(i)}" y1="${H-B}" y2="${H-B+4}" stroke="var(--line)"/><text x="${x(i)}" y="${H-6}" font-size="11" fill="var(--muted)" text-anchor="${k===0?'start':k===idx.length-1?'end':'middle'}">${lab(i)}</text>`).join('')
+  +`<text x="${W-R+8}" y="${H-6}" font-size="10" fill="var(--muted)">${iv==='W'?'주봉':'일봉'}</text>`;
  const last=pts[n-1][1],first=pts[0][1],gid='g'+key.replace(/[^a-z0-9]/gi,'')+Math.random().toString(36).slice(2,6);
  const fa=animate&&!RM?'fade':'';
  plot.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${host.dataset.name||''} ${range} 추이">
@@ -237,17 +255,19 @@ function draw(host,key,range,animate){
   let i=Math.round((cx-L)/(W-L-R)*(n-1));i=Math.max(0,Math.min(n-1,i));const px=x(i),py=y(pts[i][1]);
   xh.setAttribute('x1',px);xh.setAttribute('x2',px);xh.setAttribute('opacity',1);dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.setAttribute('opacity',1);
   const ch=i?(pts[i][1]/pts[i-1][1]-1)*100:null;
-  tip.innerHTML=`<div class="d">${pts[i][0]}</div><b>${fmt(pts[i][1],dg(pts[i][1]))}</b>`+(ch!=null?` <span class="${sgn(ch)}">${arrow(ch)}${Math.abs(ch).toFixed(2)}%</span>`:'')+(m20[i]!=null?`<div class="d">20일선 ${fmt(m20[i],dg(m20[i]))}</div>`:'');
+  tip.innerHTML=`<div class="d">${iv==='W'?pts[i][2].slice(5).replace('-','/')+' 주 (마감 '+pts[i][0].slice(5).replace('-','/')+')':pts[i][0]}</div><b>${fmt(pts[i][1],dg(pts[i][1]))}</b>`+(ch!=null?` <span class="${sgn(ch)}">${arrow(ch)}${Math.abs(ch).toFixed(2)}%</span>`:'')+(ch!=null?`<div class="d">${iv==='W'?'전주':'전일'} 대비</div>`:'')+(m20[i]!=null?`<div class="d">${MA_L[iv]}선 ${fmt(m20[i],dg(m20[i]))}</div>`:'');
   tip.style.opacity=1;const tw=tip.offsetWidth;let lf=px/W*r.width+12;if(lf+tw>r.width)lf=px/W*r.width-tw-12;tip.style.left=lf+'px';tip.style.top='4px';}
  function lv(){xh.setAttribute('opacity',0);dot.setAttribute('opacity',0);tip.style.opacity=0;}
  hit.addEventListener('mousemove',mv);hit.addEventListener('mouseleave',lv);hit.addEventListener('touchstart',mv,{passive:true});hit.addEventListener('touchmove',mv,{passive:true});hit.addEventListener('touchend',lv);
  const ret=(last/first-1)*100,hA=Math.max(...pts.map(p=>p[1])),lA=Math.min(...pts.map(p=>p[1])),m=m20f[m20f.length-1];
  host.querySelector('.stats').innerHTML=`<div>${range} 수익률<b class="${sgn(ret)}">${ret>0?'+':''}${ret.toFixed(2)}%</b></div><div>${range} 최고<b>${fmt(hA,dg(hA))}</b></div><div>${range} 최저<b>${fmt(lA,dg(lA))}</b></div>`+
-  (m?`<div>20일선 대비<b class="${last>m?'up':'down'}">${last>m?'위':'아래'} ${Math.abs((last/m-1)*100).toFixed(1)}%</b></div>`:'<div></div>');
- host.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.r===range));host.dataset.range=range;
- const tb=host.querySelector('tbody');if(tb)tb.innerHTML=pts.slice(-10).reverse().map(p=>`<tr><td>${p[0]}</td><td class="num">${fmt(p[1],dg(p[1]))}</td></tr>`).join('');
+  (m?`<div>${MA_L[iv]}선 대비<b class="${last>m?'up':'down'}">${last>m?'위':'아래'} ${Math.abs((last/m-1)*100).toFixed(1)}%</b></div>`:'<div></div>');
+ host.querySelectorAll('.tabs [data-r]').forEach(b=>b.classList.toggle('on',b.dataset.r===range));host.dataset.range=range;
+ host.querySelectorAll('.tabs [data-iv]').forEach(b=>b.classList.toggle('on',b.dataset.iv===iv));
+ const tb=host.querySelector('tbody');if(tb)tb.innerHTML=pts.slice(-10).reverse().map(p=>`<tr><td>${iv==='W'?p[2]+' 주':p[0]}</td><td class="num">${fmt(p[1],dg(p[1]))}</td></tr>`).join('');
 }
-function bindTabs(host){host.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>draw(host,host.dataset.key,b.dataset.r,true));}
+function bindTabs(host){host.querySelectorAll('.tabs [data-r]').forEach(b=>b.onclick=()=>draw(host,host.dataset.key,b.dataset.r,true));
+ host.querySelectorAll('.tabs [data-iv]').forEach(b=>b.onclick=()=>{host.dataset.iv=b.dataset.iv;draw(host,host.dataset.key,host.dataset.range||'3M',true);});}
 
 /* 지수 카드 */
 const cards=[...document.querySelectorAll('.chart-card')];
@@ -267,10 +287,10 @@ const modal=document.getElementById('modal'),sheet=modal.querySelector('.sheet')
 function openStock(key,name,sub){CUR=key;const d=DATA[key];if(!d||d.length<2)return;lastFocus=document.activeElement;
  const last=d[d.length-1][1],ch=(last/d[d.length-2][1]-1)*100;
  sheet.dataset.name=name;sheet.querySelector('.ch-name').textContent=name+(sub?' · '+sub:'');
- sheet.querySelector('.src').textContent=key.startsWith('fx:')?'환율: Yahoo Finance 달러 기준 환율로 원화 환산 (원/달러 ÷ 통화/달러)':'차트·가격: Yahoo Finance 종가 기준';
+ sheet.querySelector('.src').textContent=key.startsWith('fx:')?'환율: Yahoo Finance 달러 기준 환율로 원화 환산 (원/달러 ÷ 통화/달러)':key.startsWith('cm:')?'원자재: Yahoo Finance 근월물 선물 종가 (달러 기준)':'차트·가격: Yahoo Finance 종가 기준';
  const ce=sheet.querySelector('.ch-chg');ce.className='ch-chg '+sgn(ch);ce.textContent=`${arrow(ch)}${Math.abs(ch).toFixed(2)}% (전일 대비)`;
  modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
- requestAnimationFrame(()=>{draw(sheet,key,'3M',true);CUR=key;countUp(sheet.querySelector('.ch-price'),last,dg(last));sheet.querySelector('.x').focus();});}
+ sheet.dataset.iv='D';requestAnimationFrame(()=>{draw(sheet,key,'3M',true);CUR=key;countUp(sheet.querySelector('.ch-price'),last,dg(last));sheet.querySelector('.x').focus();});}
 function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.style.overflow='';if(lastFocus)lastFocus.focus();}
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});sheet.querySelector('.x').onclick=closeModal;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
@@ -303,13 +323,13 @@ def chart_card(key, label, quote):
     <div><div class="ch-name">{esc(label)}</div>
       <div class="ch-price" data-v="{price if price is not None else ''}">{num(price)}</div>
       <div class="ch-chg {cls(rate)}">{chg}</div></div>
-    <div class="tabs" role="tablist" aria-label="{esc(label)} 기간">
-      <button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div>
+    <div class="tabgrp"><div class="tabs" role="tablist" aria-label="{esc(label)} 기간">
+      <button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div><div class="tabs iv" role="tablist" aria-label="봉 단위"><button data-iv="D" class="on">일</button><button data-iv="W">주</button></div></div>
   </div>
-  <div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i>20일 이동평균</span></div>
+  <div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i><span class="ma-lbl">20일 이동평균</span></span></div>
   <div class="plot"></div>
   <div class="stats"></div>
-  <details class="tbl"><summary>최근 10일 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
+  <details class="tbl"><summary>최근 10개 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
 </div>"""
 
 
@@ -325,10 +345,10 @@ def stock_cards(items):
 MODAL = """<div class="modal" id="modal" aria-hidden="true"><div class="sheet" role="dialog" aria-modal="true" aria-label="종목 차트">
 <button class="x" aria-label="닫기">✕</button>
 <div class="ch-name"></div><div class="ch-price">-</div><div class="ch-chg"></div>
-<div class="tabs" style="display:inline-flex;margin-top:10px"><button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div>
-<div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i>20일 이동평균</span></div>
+<div class="tabgrp" style="margin-top:10px"><div class="tabs"><button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div><div class="tabs iv" role="tablist" aria-label="봉 단위"><button data-iv="D" class="on">일</button><button data-iv="W">주</button></div></div>
+<div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i><span class="ma-lbl">20일 이동평균</span></span></div>
 <div class="plot" style="--h:260"></div><div class="stats"></div>
-<details class="tbl"><summary>최근 10일 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
+<details class="tbl"><summary>최근 10개 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
 <p class="flat src" style="font-size:.75rem;margin:10px 0 0">차트·가격: Yahoo Finance 종가 기준</p></div></div>"""
 
 
@@ -399,6 +419,9 @@ def render(d, archive, hist):
     if us_items:
         p.append("<div class='sec'><h2>🔎 미국 빅테크</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(us_items))
 
+    cm_items = [("cm:" + sym, nm, unit) for sym, nm, unit in COMMODITIES if hist.get("cm:" + sym)]
+    if cm_items:
+        p.append("<div class='sec'><h2>🪙 원자재</h2><span class='tag'>국제 선물 · 눌러서 차트 보기</span></div>" + stock_cards(cm_items))
     if fx_items:
         p.append("<div class='sec'><h2>💱 환율</h2><span class='tag'>원화 기준 · 눌러서 차트 보기</span></div>" + stock_cards(fx_items).replace(" = ? 원", " 기준"))
     if d.get("news"):
@@ -407,7 +430,7 @@ def render(d, archive, hist):
     if archive:
         p.append("<div class='sec'><h2>🗂 지난 리포트</h2></div><div class='arch'>" +
                  "".join(f"<a href='{SITE}reports/{a}.html'>{a}</a>" for a in archive) + "</div>")
-    p.append("<footer>지수·종목·환율 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer></main>")
+    p.append("<footer>지수·종목·환율·원자재 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer></main>")
     data_json = json.dumps(hist, separators=(",", ":")).replace("</", "<\\/")
     return ("<!doctype html><html lang='ko'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
@@ -453,6 +476,11 @@ def main():
             hist["s:" + sym] = fetch_history(sym)
         except Exception as e:
             print(f"[WARN] {sym} 이력 실패: {e}", file=sys.stderr)
+    for sym, _, _ in COMMODITIES:
+        try:
+            hist["cm:" + sym] = fetch_history(sym)
+        except Exception as e:
+            print(f"[WARN] {sym} 실패: {e}", file=sys.stderr)
     try:
         hist.update(fetch_fx())
     except Exception as e:
@@ -468,7 +496,7 @@ def main():
         f.write(text)
     sys.stdout.reconfigure(encoding="utf-8")
     print(text)
-    print(f"\n({len(text)}자) · 차트 데이터: " + f"지수 {sum(1 for k in hist if ':' not in k)}개, 종목 {sum(1 for k in hist if k.startswith('s:'))}개, 환율 {sum(1 for k in hist if k.startswith('fx:'))}개")
+    print(f"\n({len(text)}자) · 차트 데이터: " + f"지수 {sum(1 for k in hist if ':' not in k)}개, 종목 {sum(1 for k in hist if k.startswith('s:'))}개, 환율 {sum(1 for k in hist if k.startswith('fx:'))}개, 원자재 {sum(1 for k in hist if k.startswith('cm:'))}개")
 
 
 if __name__ == "__main__":
