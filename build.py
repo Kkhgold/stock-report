@@ -32,6 +32,30 @@ US_STOCKS = [
 ]
 
 
+FX = [
+    ("USD", "미국 달러", "🇺🇸", 1, None),
+    ("JPY", "일본 엔", "🇯🇵", 100, "JPY=X"),
+    ("CNY", "중국 위안", "🇨🇳", 1, "CNY=X"),
+    ("INR", "인도 루피", "🇮🇳", 1, "INR=X"),
+    ("VND", "베트남 동", "🇻🇳", 100, "VND=X"),
+    ("THB", "태국 바트", "🇹🇭", 1, "THB=X"),
+]
+
+
+def fetch_fx():
+    """원화 환율 = (원/달러) ÷ (통화/달러) × 단위 — 모든 통화를 같은 기준으로 계산"""
+    usdkrw = dict(fetch_history("KRW=X"))
+    out = {}
+    for code, _, _, unit, sym in FX:
+        if sym is None:
+            series = sorted(usdkrw.items())
+        else:
+            other = dict(fetch_history(sym))
+            series = sorted((d, usdkrw[d] / v) for d, v in other.items() if d in usdkrw and v)
+        out["fx:" + code] = [[d, round(v * unit, 4)] for d, v in series]
+    return out
+
+
 def kr_symbol(r):
     code = str(r.get("code", "")).strip()
     if not code:
@@ -172,7 +196,7 @@ const DATA = JSON.parse(document.getElementById('chart-data').textContent);
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const RANGES = {'1M':22,'3M':66,'6M':130,'1Y':9999};
 const fmt=(v,d=2)=>v.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
-const dg=v=>v>=1000?0:2;
+let CUR='';const dg=v=>CUR.startsWith('fx:')?2:(v>=1000?0:2);
 const sgn=c=>c>0?'up':c<0?'down':'flat', arrow=c=>c>0?'▲':c<0?'▼':'';
 function ma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
 function niceTicks(lo,hi,c){const st0=(hi-lo)/c,m=Math.pow(10,Math.floor(Math.log10(st0)));const st=[1,2,2.5,5,10].map(k=>k*m).find(v=>v>=st0);const o=[];for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st)o.push(v);return o;}
@@ -184,7 +208,7 @@ function countUp(el,to,d){if(!el||isNaN(to))return;if(RM){el.textContent=fmt(to,
 
 /* 큰 차트: host 안의 .plot/.stats/.tabs/tbody 를 채운다 */
 function draw(host,key,range,animate){
- const full=DATA[key];const plot=host.querySelector('.plot');host.dataset.key=key;
+ CUR=key;const full=DATA[key];const plot=host.querySelector('.plot');host.dataset.key=key;
  if(!full||full.length<2){plot.innerHTML='<p class="flat">차트 데이터 없음</p>';return;}
  const closes=full.map(p=>p[1]),m20f=ma(closes,20);
  const n=Math.min(RANGES[range],full.length),s=full.length-n,pts=full.slice(s),m20=m20f.slice(s);
@@ -209,7 +233,7 @@ function draw(host,key,range,animate){
   <rect class="hit" width="${W}" height="${H}" fill="transparent"/></svg><div class="tip"></div>`;
  const sv=plot.querySelector('svg');if(animate)animatePaths(sv);
  const xh=sv.querySelector('.xh'),dot=sv.querySelector('.dot'),tip=plot.querySelector('.tip'),hit=sv.querySelector('.hit');
- function mv(ev){const r=sv.getBoundingClientRect(),cx=((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)/r.width*W;
+ function mv(ev){CUR=key;const r=sv.getBoundingClientRect(),cx=((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)/r.width*W;
   let i=Math.round((cx-L)/(W-L-R)*(n-1));i=Math.max(0,Math.min(n-1,i));const px=x(i),py=y(pts[i][1]);
   xh.setAttribute('x1',px);xh.setAttribute('x2',px);xh.setAttribute('opacity',1);dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.setAttribute('opacity',1);
   const ch=i?(pts[i][1]/pts[i-1][1]-1)*100:null;
@@ -230,7 +254,7 @@ const cards=[...document.querySelectorAll('.chart-card')];
 cards.forEach(c=>{draw(c,c.dataset.key,'3M',false);bindTabs(c);});
 
 /* 종목 카드: 가격·등락·스파크라인 */
-document.querySelectorAll('.stock').forEach(el=>{const d=DATA[el.dataset.key];if(!d||d.length<2)return;
+document.querySelectorAll('.stock').forEach(el=>{CUR=el.dataset.key;const d=DATA[el.dataset.key];if(!d||d.length<2)return;
  const pts=d.slice(-66),W=180,H=44,lo=Math.min(...pts.map(p=>p[1])),hi=Math.max(...pts.map(p=>p[1]));
  const x=i=>i/(pts.length-1)*W,y=v=>H-3-(H-6)*((v-lo)/((hi-lo)||1));
  const ln=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p[1]).toFixed(1)).join('');
@@ -240,12 +264,13 @@ document.querySelectorAll('.stock').forEach(el=>{const d=DATA[el.dataset.key];if
 
 /* 종목 차트 모달 */
 const modal=document.getElementById('modal'),sheet=modal.querySelector('.sheet');let lastFocus=null;bindTabs(sheet);
-function openStock(key,name,sub){const d=DATA[key];if(!d||d.length<2)return;lastFocus=document.activeElement;
+function openStock(key,name,sub){CUR=key;const d=DATA[key];if(!d||d.length<2)return;lastFocus=document.activeElement;
  const last=d[d.length-1][1],ch=(last/d[d.length-2][1]-1)*100;
  sheet.dataset.name=name;sheet.querySelector('.ch-name').textContent=name+(sub?' · '+sub:'');
+ sheet.querySelector('.src').textContent=key.startsWith('fx:')?'환율: Yahoo Finance 달러 기준 환율로 원화 환산 (원/달러 ÷ 통화/달러)':'차트·가격: Yahoo Finance 종가 기준';
  const ce=sheet.querySelector('.ch-chg');ce.className='ch-chg '+sgn(ch);ce.textContent=`${arrow(ch)}${Math.abs(ch).toFixed(2)}% (전일 대비)`;
  modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
- requestAnimationFrame(()=>{draw(sheet,key,'3M',true);countUp(sheet.querySelector('.ch-price'),last,dg(last));sheet.querySelector('.x').focus();});}
+ requestAnimationFrame(()=>{draw(sheet,key,'3M',true);CUR=key;countUp(sheet.querySelector('.ch-price'),last,dg(last));sheet.querySelector('.x').focus();});}
 function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.style.overflow='';if(lastFocus)lastFocus.focus();}
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});sheet.querySelector('.x').onclick=closeModal;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
@@ -304,7 +329,7 @@ MODAL = """<div class="modal" id="modal" aria-hidden="true"><div class="sheet" r
 <div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i>20일 이동평균</span></div>
 <div class="plot" style="--h:260"></div><div class="stats"></div>
 <details class="tbl"><summary>최근 10일 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
-<p class="flat" style="font-size:.75rem;margin:10px 0 0">차트·가격: Yahoo Finance 종가 기준</p></div></div>"""
+<p class="flat src" style="font-size:.75rem;margin:10px 0 0">차트·가격: Yahoo Finance 종가 기준</p></div></div>"""
 
 
 def tiles(items, digits=2):
@@ -369,17 +394,20 @@ def render(d, archive, hist):
     rest = [u for u in us if u["name"].upper().replace(" ", "") not in ("NASDAQ", "S&P500")]
     if rest:
         p.append(tiles(rest))
+    fx_items = [("fx:" + c, f"{flag} {nm}", f"{unit}{c} = ? 원" if unit > 1 else f"1{c} = ? 원") for c, nm, flag, unit, _ in FX if hist.get("fx:" + c)]
     us_items = [("s:" + t, nm, t) for t, nm in US_STOCKS if hist.get("s:" + t)]
     if us_items:
         p.append("<div class='sec'><h2>🔎 미국 빅테크</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(us_items))
 
+    if fx_items:
+        p.append("<div class='sec'><h2>💱 환율</h2><span class='tag'>원화 기준 · 눌러서 차트 보기</span></div>" + stock_cards(fx_items).replace(" = ? 원", " 기준"))
     if d.get("news"):
         p.append("<div class='sec'><h2>📰 주요 뉴스</h2></div><div class='card news'><ul>" +
                  "".join(f"<li><span class='t'>{esc(n.get('time', ''))}</span>{esc(n['title'])}</li>" for n in d["news"]) + "</ul></div>")
     if archive:
         p.append("<div class='sec'><h2>🗂 지난 리포트</h2></div><div class='arch'>" +
                  "".join(f"<a href='{SITE}reports/{a}.html'>{a}</a>" for a in archive) + "</div>")
-    p.append("<footer>지수 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer></main>")
+    p.append("<footer>지수·종목·환율 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer></main>")
     data_json = json.dumps(hist, separators=(",", ":")).replace("</", "<\\/")
     return ("<!doctype html><html lang='ko'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
@@ -425,6 +453,10 @@ def main():
             hist["s:" + sym] = fetch_history(sym)
         except Exception as e:
             print(f"[WARN] {sym} 이력 실패: {e}", file=sys.stderr)
+    try:
+        hist.update(fetch_fx())
+    except Exception as e:
+        print(f"[WARN] 환율 실패: {e}", file=sys.stderr)
     os.makedirs(os.path.join(ROOT, "reports"), exist_ok=True)
     archive = sorted({n[:-5] for n in os.listdir(os.path.join(ROOT, "reports")) if n.endswith(".html")} | {d["date"]}, reverse=True)
     page = render(d, archive, hist)
@@ -436,7 +468,7 @@ def main():
         f.write(text)
     sys.stdout.reconfigure(encoding="utf-8")
     print(text)
-    print(f"\n({len(text)}자) · 차트 데이터: " + f"지수 {sum(1 for k in hist if not k.startswith('s:'))}개, 종목 {sum(1 for k in hist if k.startswith('s:'))}개")
+    print(f"\n({len(text)}자) · 차트 데이터: " + f"지수 {sum(1 for k in hist if ':' not in k)}개, 종목 {sum(1 for k in hist if k.startswith('s:'))}개, 환율 {sum(1 for k in hist if k.startswith('fx:'))}개")
 
 
 if __name__ == "__main__":
