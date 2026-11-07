@@ -52,32 +52,44 @@
     {
       "name": "SK하이닉스",
       "price": 1176000,
-      "rate": -6.96
+      "rate": -6.96,
+      "code": "000660",
+      "market": "KOSPI"
     },
     {
       "name": "삼성전자",
       "price": 193500,
-      "rate": -3.97
+      "rate": -3.97,
+      "code": "005930",
+      "market": "KOSPI"
     },
     {
       "name": "KODEX 200",
       "price": 79005,
-      "rate": -6.62
+      "rate": -6.62,
+      "code": "069500",
+      "market": "KOSPI"
     },
     {
       "name": "KODEX 200선물인버스2X",
       "price": 125,
-      "rate": 12.61
+      "rate": 12.61,
+      "code": "252670",
+      "market": "KOSPI"
     },
     {
       "name": "KODEX 레버리지",
       "price": 54460,
-      "rate": -12.86
+      "rate": -12.86,
+      "code": "122630",
+      "market": "KOSPI"
     },
     {
       "name": "삼성전기",
       "price": 894000,
-      "rate": -5.3
+      "rate": -5.3,
+      "code": "009150",
+      "market": "KOSPI"
     }
   ],
   "news": [

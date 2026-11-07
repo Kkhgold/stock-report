@@ -26,6 +26,19 @@ CHARTS = [
 ]
 
 
+US_STOCKS = [
+    ("NVDA", "엔비디아"), ("AAPL", "애플"), ("MSFT", "마이크로소프트"), ("AMZN", "아마존"),
+    ("GOOGL", "알파벳"), ("META", "메타"), ("TSLA", "테슬라"), ("AVGO", "브로드컴"),
+]
+
+
+def kr_symbol(r):
+    code = str(r.get("code", "")).strip()
+    if not code:
+        return None
+    return code + (".KQ" if str(r.get("market", "")).upper() in ("KQ", "KOSDAQ") else ".KS")
+
+
 def fetch_history(symbol):
     url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
            + urllib.parse.quote(symbol) + "?range=1y&interval=1d")
@@ -124,68 +137,133 @@ td.rk{color:var(--muted);width:24px;font-variant-numeric:tabular-nums}
 .arch a{display:inline-block;background:var(--chip);color:var(--text);text-decoration:none;border-radius:999px;padding:4px 12px;margin:3px 4px 3px 0;font-size:.85rem}
 details.tbl summary{cursor:pointer;color:var(--muted);font-size:.8rem;margin-top:6px}
 footer{color:var(--muted);font-size:.78rem;margin-top:30px;text-align:center}
+.stocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px}
+.stock{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px 8px;box-shadow:var(--shadow);cursor:pointer;
+ text-align:left;font:inherit;color:inherit;transition:transform .18s ease,box-shadow .18s ease,border-color .18s}
+.stock:hover,.stock:focus-visible{transform:translateY(-3px);border-color:var(--series-1);box-shadow:0 8px 24px rgba(42,120,214,.18);outline:none}
+.stock .nm{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stock .sb{color:var(--muted);font-size:.72rem}
+.stock .row{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+.stock .pr{font-weight:800;font-variant-numeric:tabular-nums}.stock .rt{font-weight:700;font-size:.85rem;font-variant-numeric:tabular-nums}
+.stock svg{display:block;width:100%;height:44px;margin-top:6px}
+tr.clk{cursor:pointer;transition:background .15s}tr.clk:hover{background:var(--surface-2)}
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:rgba(5,10,20,.55);opacity:0;pointer-events:none;transition:opacity .2s}
+.modal.open{opacity:1;pointer-events:auto}
+.sheet{background:var(--surface);color:var(--text);width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px 24px;
+ transform:translateY(40px);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.modal.open .sheet{transform:none}
+@media (min-width:760px){.modal{align-items:center}.sheet{border-radius:20px}}
+.sheet .x{float:right;border:0;background:var(--chip);color:var(--text);width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer}
+.sheet .plot svg{height:260px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.pre{opacity:0}
+.anim{animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes drawLine{to{stroke-dashoffset:0}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.draw{animation:drawLine 1.1s cubic-bezier(.4,0,.2,1) forwards}
+.fade{animation:fadeIn .9s ease .25s both}
+@media (prefers-reduced-motion:reduce){.pre{opacity:1}.anim,.draw,.fade{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}.stock,.sheet,.modal{transition:none}}
 @media (max-width:480px){.ch-price{font-size:1.45rem}.stats{grid-template-columns:repeat(2,1fr)}.hero h1{font-size:1.45rem}}
 """
 
 JS = r"""
 (function(){
 const DATA = JSON.parse(document.getElementById('chart-data').textContent);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const RANGES = {'1M':22,'3M':66,'6M':130,'1Y':9999};
-const fmt = (v,d=2)=>v.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
-function ma(arr,n){return arr.map((_,i)=>i<n-1?null:arr.slice(i-n+1,i+1).reduce((a,b)=>a+b,0)/n);}
-function niceTicks(lo,hi,count){const span=hi-lo;const step0=span/count;const mag=Math.pow(10,Math.floor(Math.log10(step0)));
- const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=step0);const out=[];for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)out.push(v);return out;}
-function draw(card,key,range){
- const full=DATA[key]; if(!full||!full.length){card.querySelector('.plot').innerHTML='<p style="color:var(--muted)">차트 데이터 없음</p>';return;}
- const closes=full.map(p=>p[1]); const ma20full=ma(closes,20);
- const n=Math.min(RANGES[range],full.length); const s=full.length-n;
- const pts=full.slice(s), m20=ma20full.slice(s);
- const plot=card.querySelector('.plot'); const W=Math.max(260,Math.round(plot.clientWidth||600)),H=220,L=4,R=56,T=10,B=24;
- const vals=pts.map(p=>p[1]).concat(m20.filter(v=>v!=null));
- let lo=Math.min(...vals),hi=Math.max(...vals);const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
- const x=i=>L+(W-L-R)*(n===1?0.5:i/(n-1)); const y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+const fmt=(v,d=2)=>v.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const dg=v=>v>=1000?0:2;
+const sgn=c=>c>0?'up':c<0?'down':'flat', arrow=c=>c>0?'▲':c<0?'▼':'';
+function ma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
+function niceTicks(lo,hi,c){const st0=(hi-lo)/c,m=Math.pow(10,Math.floor(Math.log10(st0)));const st=[1,2,2.5,5,10].map(k=>k*m).find(v=>v>=st0);const o=[];for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st)o.push(v);return o;}
+function animatePaths(svg){if(RM||!svg)return;svg.querySelectorAll('path.ln').forEach(p=>{const L=p.getTotalLength();if(!L)return;
+ p.style.strokeDasharray=L;p.style.strokeDashoffset=L;p.getBoundingClientRect();p.classList.add('draw');
+ p.addEventListener('animationend',()=>{p.style.strokeDasharray=p.dataset.dash||'';p.style.strokeDashoffset='';p.classList.remove('draw');},{once:true});});}
+function countUp(el,to,d){if(!el||isNaN(to))return;if(RM){el.textContent=fmt(to,d);return;}const t0=performance.now(),from=to*0.92;
+ (function f(t){const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e,d);if(k<1)requestAnimationFrame(f);})(t0);}
+
+/* 큰 차트: host 안의 .plot/.stats/.tabs/tbody 를 채운다 */
+function draw(host,key,range,animate){
+ const full=DATA[key];const plot=host.querySelector('.plot');host.dataset.key=key;
+ if(!full||full.length<2){plot.innerHTML='<p class="flat">차트 데이터 없음</p>';return;}
+ const closes=full.map(p=>p[1]),m20f=ma(closes,20);
+ const n=Math.min(RANGES[range],full.length),s=full.length-n,pts=full.slice(s),m20=m20f.slice(s);
+ const W=Math.max(260,Math.round(plot.clientWidth||600)),H=parseInt(getComputedStyle(plot).getPropertyValue('--h'))||220,L=4,R=60,T=10,B=24;
+ const vals=pts.map(p=>p[1]).concat(m20.filter(v=>v!=null));let lo=Math.min(...vals),hi=Math.max(...vals);const pd=(hi-lo)*.08||1;lo-=pd;hi+=pd;
+ const x=i=>L+(W-L-R)*(i/(n-1)),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
  const line=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p[1]).toFixed(1)).join('');
- const area=line+'L'+x(n-1).toFixed(1)+','+(H-B)+'L'+x(0).toFixed(1)+','+(H-B)+'Z';
- let maPath='';m20.forEach((v,i)=>{if(v==null)return;maPath+=(maPath?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1);});
- const ticks=niceTicks(lo,hi,4);
- const grid=ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`+
-   `<text x="${W-R+8}" y="${y(t)+4}" font-size="11" fill="var(--muted)">${t>=100?fmt(t,0):fmt(t,1)}</text>`).join('');
- const xl=[0,Math.floor((n-1)/2),n-1].map((i,k)=>`<text x="${x(i)}" y="${H-6}" font-size="11" fill="var(--muted)" text-anchor="${['start','middle','end'][k]}">${pts[i][0].slice(5).replace('-','/')}</text>`).join('');
- const last=pts[n-1][1], first=pts[0][1];
- const gid='g'+key;
- const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${card.dataset.name} ${range} 추이">
-  <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--series-1)" stop-opacity=".28"/><stop offset="1" stop-color="var(--series-1)" stop-opacity="0"/></linearGradient></defs>
-  ${grid}${xl}
-  <path d="${area}" fill="url(#${gid})"/>
-  ${maPath?`<path d="${maPath}" fill="none" stroke="var(--series-2)" stroke-width="1.6" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>`:''}
-  <path d="${line}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-  <circle cx="${x(n-1)}" cy="${y(last)}" r="4" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
-  <line class="xh" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity="0" vector-effect="non-scaling-stroke"/>
+ const area=line+`L${x(n-1).toFixed(1)},${H-B}L${x(0).toFixed(1)},${H-B}Z`;
+ let mp='';m20.forEach((v,i)=>{if(v!=null)mp+=(mp?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1);});
+ const ticks=niceTicks(lo,hi,4),grid=ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${W-R+8}" y="${y(t)+4}" font-size="11" fill="var(--muted)">${fmt(t,t>=100?0:1)}</text>`).join('');
+ const xl=[0,Math.floor((n-1)/2),n-1].map((i,k)=>`<text x="${x(i)}" y="${H-6}" font-size="11" fill="var(--muted)" text-anchor="${['start','middle','end'][k]}">${pts[i][0].slice(2).replace(/-/g,'/')}</text>`).join('');
+ const last=pts[n-1][1],first=pts[0][1],gid='g'+key.replace(/[^a-z0-9]/gi,'')+Math.random().toString(36).slice(2,6);
+ const fa=animate&&!RM?'fade':'';
+ plot.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${host.dataset.name||''} ${range} 추이">
+  <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--series-1)" stop-opacity=".3"/><stop offset="1" stop-color="var(--series-1)" stop-opacity="0"/></linearGradient></defs>
+  ${grid}${xl}<path class="${fa}" d="${area}" fill="url(#${gid})"/>
+  ${mp?`<path class="ln" data-dash="5 4" d="${mp}" fill="none" stroke="var(--series-2)" stroke-width="1.6" stroke-dasharray="5 4"/>`:''}
+  <path class="ln" d="${line}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round"/>
+  <circle class="${fa}" cx="${x(n-1)}" cy="${y(last)}" r="4" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
+  <line class="xh" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0"/>
   <circle class="dot" r="5" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
-  <rect class="hit" x="0" y="0" width="${W}" height="${H}" fill="transparent"/></svg><div class="tip"></div>`;
- plot.innerHTML=svg;
- const sv=plot.querySelector('svg'),xh=sv.querySelector('.xh'),dot=sv.querySelector('.dot'),tip=plot.querySelector('.tip');
- function move(ev){const r=sv.getBoundingClientRect();const cx=((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)/r.width*W;
+  <rect class="hit" width="${W}" height="${H}" fill="transparent"/></svg><div class="tip"></div>`;
+ const sv=plot.querySelector('svg');if(animate)animatePaths(sv);
+ const xh=sv.querySelector('.xh'),dot=sv.querySelector('.dot'),tip=plot.querySelector('.tip'),hit=sv.querySelector('.hit');
+ function mv(ev){const r=sv.getBoundingClientRect(),cx=((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)/r.width*W;
   let i=Math.round((cx-L)/(W-L-R)*(n-1));i=Math.max(0,Math.min(n-1,i));const px=x(i),py=y(pts[i][1]);
   xh.setAttribute('x1',px);xh.setAttribute('x2',px);xh.setAttribute('opacity',1);dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.setAttribute('opacity',1);
-  const prev=i?pts[i-1][1]:null;const ch=prev?((pts[i][1]/prev-1)*100):null;
-  tip.innerHTML=`<div class="d">${pts[i][0]}</div><b>${fmt(pts[i][1])}</b>`+(ch!=null?` <span class="${ch>0?'up':ch<0?'down':'flat'}">${ch>0?'▲':ch<0?'▼':''}${Math.abs(ch).toFixed(2)}%</span>`:'')+(m20[i]!=null?`<div class="d">20일선 ${fmt(m20[i])}</div>`:'');
-  tip.style.opacity=1;const tw=tip.offsetWidth;let left=px/W*r.width+12;if(left+tw>r.width)left=px/W*r.width-tw-12;tip.style.left=left+'px';tip.style.top='4px';}
- function leave(){xh.setAttribute('opacity',0);dot.setAttribute('opacity',0);tip.style.opacity=0;}
- const hit=sv.querySelector('.hit');hit.addEventListener('mousemove',move);hit.addEventListener('mouseleave',leave);
- hit.addEventListener('touchstart',move,{passive:true});hit.addEventListener('touchmove',move,{passive:true});hit.addEventListener('touchend',leave);
- const ret=(last/first-1)*100;const hiAll=Math.max(...pts.map(p=>p[1])),loAll=Math.min(...pts.map(p=>p[1]));
- const st=card.querySelector('.stats');
- st.innerHTML=`<div>${range} 수익률<b class="${ret>0?'up':ret<0?'down':'flat'}">${ret>0?'+':''}${ret.toFixed(2)}%</b></div>`+
-  `<div>${range} 최고<b>${fmt(hiAll)}</b></div><div>${range} 최저<b>${fmt(loAll)}</b></div>`+
-  `<div>20일선 대비<b class="${last>ma20full[ma20full.length-1]?'up':'down'}">${last>ma20full[ma20full.length-1]?'위':'아래'} ${Math.abs((last/ma20full[ma20full.length-1]-1)*100).toFixed(1)}%</b></div>`;
- card.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.r===range));
- const tb=card.querySelector('tbody');if(tb){tb.innerHTML=pts.slice(-10).reverse().map(p=>`<tr><td>${p[0]}</td><td class="num">${fmt(p[1])}</td></tr>`).join('');}
+  const ch=i?(pts[i][1]/pts[i-1][1]-1)*100:null;
+  tip.innerHTML=`<div class="d">${pts[i][0]}</div><b>${fmt(pts[i][1],dg(pts[i][1]))}</b>`+(ch!=null?` <span class="${sgn(ch)}">${arrow(ch)}${Math.abs(ch).toFixed(2)}%</span>`:'')+(m20[i]!=null?`<div class="d">20일선 ${fmt(m20[i],dg(m20[i]))}</div>`:'');
+  tip.style.opacity=1;const tw=tip.offsetWidth;let lf=px/W*r.width+12;if(lf+tw>r.width)lf=px/W*r.width-tw-12;tip.style.left=lf+'px';tip.style.top='4px';}
+ function lv(){xh.setAttribute('opacity',0);dot.setAttribute('opacity',0);tip.style.opacity=0;}
+ hit.addEventListener('mousemove',mv);hit.addEventListener('mouseleave',lv);hit.addEventListener('touchstart',mv,{passive:true});hit.addEventListener('touchmove',mv,{passive:true});hit.addEventListener('touchend',lv);
+ const ret=(last/first-1)*100,hA=Math.max(...pts.map(p=>p[1])),lA=Math.min(...pts.map(p=>p[1])),m=m20f[m20f.length-1];
+ host.querySelector('.stats').innerHTML=`<div>${range} 수익률<b class="${sgn(ret)}">${ret>0?'+':''}${ret.toFixed(2)}%</b></div><div>${range} 최고<b>${fmt(hA,dg(hA))}</b></div><div>${range} 최저<b>${fmt(lA,dg(lA))}</b></div>`+
+  (m?`<div>20일선 대비<b class="${last>m?'up':'down'}">${last>m?'위':'아래'} ${Math.abs((last/m-1)*100).toFixed(1)}%</b></div>`:'<div></div>');
+ host.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.r===range));host.dataset.range=range;
+ const tb=host.querySelector('tbody');if(tb)tb.innerHTML=pts.slice(-10).reverse().map(p=>`<tr><td>${p[0]}</td><td class="num">${fmt(p[1],dg(p[1]))}</td></tr>`).join('');
 }
-document.querySelectorAll('.chart-card').forEach(card=>{const key=card.dataset.key;
- card.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>draw(card,key,b.dataset.r)));draw(card,key,'3M');});
-let t;window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(()=>document.querySelectorAll('.chart-card').forEach(c=>draw(c,c.dataset.key,c.querySelector('.tabs .on').dataset.r)),150);});
+function bindTabs(host){host.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>draw(host,host.dataset.key,b.dataset.r,true));}
+
+/* 지수 카드 */
+const cards=[...document.querySelectorAll('.chart-card')];
+cards.forEach(c=>{draw(c,c.dataset.key,'3M',false);bindTabs(c);});
+
+/* 종목 카드: 가격·등락·스파크라인 */
+document.querySelectorAll('.stock').forEach(el=>{const d=DATA[el.dataset.key];if(!d||d.length<2)return;
+ const pts=d.slice(-66),W=180,H=44,lo=Math.min(...pts.map(p=>p[1])),hi=Math.max(...pts.map(p=>p[1]));
+ const x=i=>i/(pts.length-1)*W,y=v=>H-3-(H-6)*((v-lo)/((hi-lo)||1));
+ const ln=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p[1]).toFixed(1)).join('');
+ const last=d[d.length-1][1],ch=(last/d[d.length-2][1]-1)*100,col=ch>=0?'var(--up)':'var(--down)';
+ el.querySelector('.pr').textContent=fmt(last,dg(last));const rt=el.querySelector('.rt');rt.textContent=arrow(ch)+Math.abs(ch).toFixed(2)+'%';rt.className='rt '+sgn(ch);
+ el.querySelector('.spark').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path class="ln" d="${ln}" fill="none" stroke="${col}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`;});
+
+/* 종목 차트 모달 */
+const modal=document.getElementById('modal'),sheet=modal.querySelector('.sheet');let lastFocus=null;bindTabs(sheet);
+function openStock(key,name,sub){const d=DATA[key];if(!d||d.length<2)return;lastFocus=document.activeElement;
+ const last=d[d.length-1][1],ch=(last/d[d.length-2][1]-1)*100;
+ sheet.dataset.name=name;sheet.querySelector('.ch-name').textContent=name+(sub?' · '+sub:'');
+ const ce=sheet.querySelector('.ch-chg');ce.className='ch-chg '+sgn(ch);ce.textContent=`${arrow(ch)}${Math.abs(ch).toFixed(2)}% (전일 대비)`;
+ modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+ requestAnimationFrame(()=>{draw(sheet,key,'3M',true);countUp(sheet.querySelector('.ch-price'),last,dg(last));sheet.querySelector('.x').focus();});}
+function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.style.overflow='';if(lastFocus)lastFocus.focus();}
+modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});sheet.querySelector('.x').onclick=closeModal;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
+document.querySelectorAll('[data-open]').forEach(el=>{const go=()=>openStock(el.dataset.key,el.dataset.name,el.dataset.sub||'');
+ el.addEventListener('click',go);if(el.tagName==='TR'){el.tabIndex=0;el.addEventListener('keydown',e=>{if(e.key==='Enter')go();});}});
+
+/* 스크롤 등장 애니메이션: 카드 떠오르기 + 차트 선 그리기 + 숫자 카운트업 */
+if('IntersectionObserver' in window && !RM){
+ const io=new IntersectionObserver(es=>es.forEach(en=>{if(!en.isIntersecting)return;const el=en.target;io.unobserve(el);
+  el.classList.remove('pre');el.classList.add('anim');
+  if(el.classList.contains('chart-card')){draw(el,el.dataset.key,el.dataset.range||'3M',true);const pe=el.querySelector('.ch-price');countUp(pe,parseFloat(pe.dataset.v),2);}
+  el.querySelectorAll('.spark svg').forEach(animatePaths);}),{threshold:.12});
+ document.querySelectorAll('main .card, main .tile, main .stock').forEach((el,i)=>{el.classList.add('pre');el.style.animationDelay=((i%4)*70)+'ms';io.observe(el);});
+}
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{cards.forEach(c=>draw(c,c.dataset.key,c.dataset.range||'3M',false));
+ if(modal.classList.contains('open'))draw(sheet,sheet.dataset.key,sheet.dataset.range||'3M',false);},150);});
 })();
+
 """
 
 
@@ -198,7 +276,7 @@ def chart_card(key, label, quote):
 <div class="card chart-card" data-key="{key}" data-name="{esc(label)}">
   <div class="ch-head">
     <div><div class="ch-name">{esc(label)}</div>
-      <div class="ch-price">{num(price)}</div>
+      <div class="ch-price" data-v="{price if price is not None else ''}">{num(price)}</div>
       <div class="ch-chg {cls(rate)}">{chg}</div></div>
     <div class="tabs" role="tablist" aria-label="{esc(label)} 기간">
       <button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div>
@@ -208,6 +286,25 @@ def chart_card(key, label, quote):
   <div class="stats"></div>
   <details class="tbl"><summary>최근 10일 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
 </div>"""
+
+
+def stock_cards(items):
+    """items: [(key, name, sub)]"""
+    return "<div class='stocks'>" + "".join(
+        f"<button class='stock' data-open data-key='{esc(k)}' data-name='{esc(nm)}' data-sub='{esc(sub)}' aria-label='{esc(nm)} 차트 열기'>"
+        f"<div class='nm'>{esc(nm)}</div><div class='sb'>{esc(sub)}</div>"
+        f"<div class='row'><span class='pr'>-</span><span class='rt flat'>-</span></div><div class='spark'></div></button>"
+        for k, nm, sub in items) + "</div>"
+
+
+MODAL = """<div class="modal" id="modal" aria-hidden="true"><div class="sheet" role="dialog" aria-modal="true" aria-label="종목 차트">
+<button class="x" aria-label="닫기">✕</button>
+<div class="ch-name"></div><div class="ch-price">-</div><div class="ch-chg"></div>
+<div class="tabs" style="display:inline-flex;margin-top:10px"><button data-r="1M">1M</button><button data-r="3M" class="on">3M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div>
+<div class="legend"><span><i style="background:var(--series-1)"></i>종가</span><span><i class="ma"></i>20일 이동평균</span></div>
+<div class="plot" style="--h:260"></div><div class="stats"></div>
+<details class="tbl"><summary>최근 10일 표로 보기</summary><table><thead><tr><th>날짜</th><th class="num">종가</th></tr></thead><tbody></tbody></table></details>
+<p class="flat" style="font-size:.75rem;margin:10px 0 0">차트·가격: Yahoo Finance 종가 기준</p></div></div>"""
 
 
 def tiles(items, digits=2):
@@ -225,7 +322,9 @@ def rank_table(rows, show_bar=False):
         rate = float(r.get("rate") or 0)
         bar = (f"<span class='bar' style='width:{max(4, abs(rate) / mx * 48):.0f}px;background:var(--{'up' if rate > 0 else 'down'})'></span>"
                if show_bar else "")
-        body += (f"<tr><td class='rk'>{i}</td><td>{esc(r['name'])}</td><td class='num'>{num(r.get('price'), 0)}</td>"
+        sym = kr_symbol(r)
+        attrs = f" class='clk' data-open data-key='s:{esc(sym)}' data-name='{esc(r['name'])}' data-sub='{esc(sym)}'" if sym else ""
+        body += (f"<tr{attrs}><td class='rk'>{i}</td><td>{esc(r['name'])}</td><td class='num'>{num(r.get('price'), 0)}</td>"
                  f"<td class='num {cls(rate)}'>{pct(rate)}{bar}</td></tr>")
     return f"<table><thead><tr><th></th><th>종목</th><th class='num'>현재가</th><th class='num'>등락률</th></tr></thead><tbody>{body}</tbody></table>"
 
@@ -255,6 +354,14 @@ def render(d, archive, hist):
                  + "<h3 style='margin:14px 0 6px;font-size:1rem'>🔻 하락률 상위</h3>" + rank_table(d.get("losers", []), True) + "</div>")
     p.append("</div>")
 
+    kr_items, seen = [], set()
+    for r in d.get("top_value", []) + d.get("gainers", []) + d.get("losers", []):
+        sym = kr_symbol(r)
+        if sym and sym not in seen and hist.get("s:" + sym):
+            seen.add(sym)
+            kr_items.append(("s:" + sym, r["name"], sym.split(".")[0]))
+    if kr_items:
+        p.append("<div class='sec'><h2>🔎 국내 주요 종목</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(kr_items))
     p.append("<div class='sec'><h2>🇺🇸 미국 시장</h2><span class='tag'>전일 마감</span></div><div class='grid2'>")
     p.append(chart_card("nasdaq", "NASDAQ", find(us, "NASDAQ")))
     p.append(chart_card("sp500", "S&P 500", find(us, "S&P 500")))
@@ -262,6 +369,9 @@ def render(d, archive, hist):
     rest = [u for u in us if u["name"].upper().replace(" ", "") not in ("NASDAQ", "S&P500")]
     if rest:
         p.append(tiles(rest))
+    us_items = [("s:" + t, nm, t) for t, nm in US_STOCKS if hist.get("s:" + t)]
+    if us_items:
+        p.append("<div class='sec'><h2>🔎 미국 빅테크</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(us_items))
 
     if d.get("news"):
         p.append("<div class='sec'><h2>📰 주요 뉴스</h2></div><div class='card news'><ul>" +
@@ -276,7 +386,7 @@ def render(d, archive, hist):
             f"<title>주식 리포트</title><meta name='description' content='{esc(title)}'>"
             f"<meta property='og:title' content='📈 {esc(title)}'><meta property='og:description' content='KOSPI·KOSDAQ·NASDAQ·S&amp;P500 차트와 시장 요약'>"
             f"<style>{CSS}</style></head><body>" + "".join(p) +
-            f"<script type='application/json' id='chart-data'>{data_json}</script><script>{JS}</script></body></html>")
+            MODAL + f"<script type='application/json' id='chart-data'>{data_json}</script><script>{JS}</script></body></html>")
 
 
 def kakao_text(d):
@@ -304,6 +414,17 @@ def main():
         except Exception as e:  # 차트 실패해도 리포트는 생성
             print(f"[WARN] {sym} 이력 실패: {e}", file=sys.stderr)
             hist[key] = []
+    syms = []
+    for r in d.get("top_value", []) + d.get("gainers", []) + d.get("losers", []):
+        sym = kr_symbol(r)
+        if sym and sym not in syms:
+            syms.append(sym)
+    syms += [t for t, _ in US_STOCKS]
+    for sym in syms:
+        try:
+            hist["s:" + sym] = fetch_history(sym)
+        except Exception as e:
+            print(f"[WARN] {sym} 이력 실패: {e}", file=sys.stderr)
     os.makedirs(os.path.join(ROOT, "reports"), exist_ok=True)
     archive = sorted({n[:-5] for n in os.listdir(os.path.join(ROOT, "reports")) if n.endswith(".html")} | {d["date"]}, reverse=True)
     page = render(d, archive, hist)
@@ -315,7 +436,7 @@ def main():
         f.write(text)
     sys.stdout.reconfigure(encoding="utf-8")
     print(text)
-    print(f"\n({len(text)}자) · 차트 데이터: " + ", ".join(f"{k} {len(v)}일" for k, v in hist.items()))
+    print(f"\n({len(text)}자) · 차트 데이터: " + f"지수 {sum(1 for k in hist if not k.startswith('s:'))}개, 종목 {sum(1 for k in hist if k.startswith('s:'))}개")
 
 
 if __name__ == "__main__":
