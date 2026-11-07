@@ -126,12 +126,26 @@ CSS = r"""
 --line:#29313d;--grid:#222a35;--series-1:#3987e5;--series-2:#d95926;--up:#ff6b6b;--down:#6aa7ff;--chip:#222a35;--hero-a:#0b1a33;--hero-b:#163e70;--shadow:none}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
-.hero{background:linear-gradient(135deg,var(--hero-a),var(--hero-b));color:#fff;padding:28px 16px 64px}
+.hero{background:linear-gradient(135deg,var(--hero-a),var(--hero-b));color:#fff;padding:24px 16px 22px}
 .hero .in{max-width:880px;margin:0 auto}
 .hero .kicker{opacity:.75;font-size:.85rem;letter-spacing:.04em}
 .hero h1{margin:4px 0 6px;font-size:1.7rem;letter-spacing:-.01em}
 .hero p{margin:0;opacity:.85;font-size:.95rem}
-.wrap{max-width:880px;margin:-44px auto 0;padding:0 16px 56px}
+.wrap{max-width:880px;margin:0 auto;padding:14px 16px 56px}
+.hero{padding-bottom:22px!important}
+.tabbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.tb-in{max-width:880px;margin:0 auto;padding:8px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tb-in::-webkit-scrollbar{display:none}
+.tabbar button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--text-2);font:inherit;font-size:.9rem;font-weight:700;
+ padding:8px 14px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.tabbar button:hover{transform:translateY(-1px)}
+.tabbar button[aria-selected="true"]{background:var(--series-1);border-color:var(--series-1);color:#fff}
+.pane{animation:fadeUp .35s cubic-bezier(.2,.8,.2,1)}
+.pane > .sec:first-child{margin-top:6px}
+.hint{color:var(--muted);font-size:.85rem;margin:2px 0 12px}
+.h3{margin:0 0 6px;font-size:1rem}
+.qt{text-align:left;font:inherit;color:inherit;cursor:pointer;transition:transform .15s,border-color .15s}
+.qt:hover{transform:translateY(-2px);border-color:var(--series-1)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
 .summary ul{margin:0;padding-left:18px}.summary li{margin:6px 0}
 .sec{display:flex;align-items:center;gap:10px;margin:30px 0 12px}
@@ -303,9 +317,23 @@ if('IntersectionObserver' in window && !RM){
   el.classList.remove('pre');el.classList.add('anim');
   if(el.classList.contains('chart-card')){draw(el,el.dataset.key,el.dataset.range||'3M',true);const pe=el.querySelector('.ch-price');countUp(pe,parseFloat(pe.dataset.v),2);}
   el.querySelectorAll('.spark svg').forEach(animatePaths);}),{threshold:.12});
- document.querySelectorAll('main .card, main .tile, main .stock').forEach((el,i)=>{el.classList.add('pre');el.style.animationDelay=((i%4)*70)+'ms';io.observe(el);});
+ document.querySelectorAll('.pane:not([hidden]) .card, .pane:not([hidden]) .tile, .pane:not([hidden]) .stock').forEach((el,i)=>{el.classList.add('pre');el.style.animationDelay=((i%4)*70)+'ms';io.observe(el);});
 }
-let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{cards.forEach(c=>draw(c,c.dataset.key,c.dataset.range||'3M',false));
+/* 탭 */
+const tabs=[...document.querySelectorAll('.tabbar [data-tab]')];
+function showTab(id,push){const pane=document.getElementById('pane-'+id);if(!pane)return;
+ tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.tab===id?'true':'false'));
+ document.querySelectorAll('.pane').forEach(p=>p.hidden=p!==pane);
+ pane.style.animation='none';pane.offsetHeight;pane.style.animation='';
+ pane.querySelectorAll('.chart-card').forEach(c=>{draw(c,c.dataset.key,c.dataset.range||'3M',true);const pe=c.querySelector('.ch-price');countUp(pe,parseFloat(pe.dataset.v),2);});
+ pane.querySelectorAll('.spark svg').forEach(animatePaths);
+ const sel=tabs.find(t=>t.dataset.tab===id);if(sel)sel.scrollIntoView({inline:'center',block:'nearest',behavior:RM?'auto':'smooth'});
+ if(push)history.replaceState(null,'','#'+id);
+ const bar=document.querySelector('.tabbar');if(bar&&window.scrollY>bar.offsetTop)window.scrollTo({top:bar.offsetTop,behavior:'auto'});}
+tabs.forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab,true)));
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.goto,true)));
+if(location.hash&&document.getElementById('pane-'+location.hash.slice(1)))showTab(location.hash.slice(1),false);
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{cards.filter(c=>c.offsetParent).forEach(c=>draw(c,c.dataset.key,c.dataset.range||'3M',false));
  if(modal.classList.contains('open'))draw(sheet,sheet.dataset.key,sheet.dataset.range||'3M',false);},150);});
 })();
 
@@ -378,27 +406,39 @@ def find(items, name):
     return next((i for i in items if i["name"].upper().replace(" ", "") == name.upper().replace(" ", "")), {})
 
 
+def quick_tile(hist, key, label, tab, digits=2):
+    d = hist.get(key) or []
+    if len(d) < 2:
+        return ""
+    last, prev = d[-1][1], d[-2][1]
+    rate = (last / prev - 1) * 100
+    return (f"<button class='tile qt' data-goto='{tab}'><div class='n'>{esc(label)}</div>"
+            f"<div class='v'>{num(last, digits)}</div><div class='r {cls(rate)}'>{pct(rate)}</div></button>")
+
+
 def render(d, archive, hist):
     title = f"주식 리포트 {d['date']}"
     idx, us = d.get("indices", []), d.get("us", [])
-    p = []
-    p.append(f"""<header class="hero"><div class="in"><div class="kicker">DAILY MARKET REPORT</div>
+    head = f"""<header class="hero"><div class="in"><div class="kicker">DAILY MARKET REPORT</div>
 <h1>📈 {esc(d['date'])} ({esc(d.get('weekday', ''))})</h1>
-<p>{esc(d.get('generated_at', ''))} 기준 · 국내 장중 / 미국 전일 마감</p></div></header><main class="wrap">""")
+<p>{esc(d.get('generated_at', ''))} 기준 · 국내 장중 / 미국 전일 마감</p></div></header>"""
+
+    panes = []  # (id, 탭 이름, html)
+
+    # 요약
+    sm = ""
     if d.get("summary"):
-        p.append("<div class='card summary'><ul>" + "".join(f"<li>{esc(s)}</li>" for s in d["summary"]) + "</ul></div>")
+        sm += "<div class='card summary'><ul>" + "".join(f"<li>{esc(x)}</li>" for x in d["summary"]) + "</ul></div>"
+    sm += "<div class='sec'><h2>한눈에 보기</h2><span class='tag'>누르면 해당 탭으로</span></div><div class='tiles'>"
+    sm += quick_tile(hist, "kospi", "KOSPI", "kr") + quick_tile(hist, "kosdaq", "KOSDAQ", "kr")
+    sm += quick_tile(hist, "nasdaq", "NASDAQ", "us") + quick_tile(hist, "sp500", "S&P 500", "us")
+    sm += quick_tile(hist, "fx:USD", "🇺🇸 원/달러", "fx") + quick_tile(hist, "fx:JPY", "🇯🇵 원/100엔", "fx")
+    sm += quick_tile(hist, "cm:GC=F", "🥇 금 ($/oz)", "cm") + quick_tile(hist, "cm:CL=F", "🛢 WTI ($/bbl)", "cm")
+    sm += "</div>"
+    panes.append(("home", "📋 요약", sm))
 
-    p.append("<div class='sec'><h2>🇰🇷 국내 시장</h2><span class='tag'>KOSPI · KOSDAQ</span></div><div class='grid2'>")
-    p.append(chart_card("kospi", "KOSPI", find(idx, "KOSPI")))
-    p.append(chart_card("kosdaq", "KOSDAQ", find(idx, "KOSDAQ")))
-    p.append("</div>")
-    p.append("<div class='grid2'><div class='card'><h3 style='margin:0 0 6px;font-size:1rem'>💰 거래대금 상위</h3>"
-             + rank_table(d.get("top_value", [])) + "</div>")
-    if d.get("gainers") or d.get("losers"):
-        p.append("<div class='card'><h3 style='margin:0 0 6px;font-size:1rem'>🔺 상승률 상위</h3>" + rank_table(d.get("gainers", []), True)
-                 + "<h3 style='margin:14px 0 6px;font-size:1rem'>🔻 하락률 상위</h3>" + rank_table(d.get("losers", []), True) + "</div>")
-    p.append("</div>")
-
+    # 국내
+    kr = "<div class='grid2'>" + chart_card("kospi", "KOSPI", find(idx, "KOSPI")) + chart_card("kosdaq", "KOSDAQ", find(idx, "KOSDAQ")) + "</div>"
     kr_items, seen = [], set()
     for r in d.get("top_value", []) + d.get("gainers", []) + d.get("losers", []):
         sym = kr_symbol(r)
@@ -406,37 +446,56 @@ def render(d, archive, hist):
             seen.add(sym)
             kr_items.append(("s:" + sym, r["name"], sym.split(".")[0]))
     if kr_items:
-        p.append("<div class='sec'><h2>🔎 국내 주요 종목</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(kr_items))
-    p.append("<div class='sec'><h2>🇺🇸 미국 시장</h2><span class='tag'>전일 마감</span></div><div class='grid2'>")
-    p.append(chart_card("nasdaq", "NASDAQ", find(us, "NASDAQ")))
-    p.append(chart_card("sp500", "S&P 500", find(us, "S&P 500")))
-    p.append("</div>")
-    rest = [u for u in us if u["name"].upper().replace(" ", "") not in ("NASDAQ", "S&P500")]
+        kr += "<div class='sec'><h2>🔎 주요 종목</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(kr_items)
+    kr += ("<div class='sec'><h2>📊 순위</h2></div><div class='grid2'><div class='card'><h3 class='h3'>💰 거래대금 상위</h3>"
+           + rank_table(d.get("top_value", [])) + "</div>")
+    if d.get("gainers") or d.get("losers"):
+        kr += ("<div class='card'><h3 class='h3'>🔺 상승률 상위</h3>" + rank_table(d.get("gainers", []), True)
+               + "<h3 class='h3' style='margin-top:14px'>🔻 하락률 상위</h3>" + rank_table(d.get("losers", []), True) + "</div>")
+    kr += "</div>"
+    panes.append(("kr", "🇰🇷 국내", kr))
+
+    # 미국
+    usp = "<div class='grid2'>" + chart_card("nasdaq", "NASDAQ", find(us, "NASDAQ")) + chart_card("sp500", "S&P 500", find(us, "S&P 500")) + "</div>"
+    rest = [u for u in us if u["name"].upper().replace(" ", "") not in ("NASDAQ", "S&P500", "원/달러")]
     if rest:
-        p.append(tiles(rest))
-    fx_items = [("fx:" + c, f"{flag} {nm}", f"{unit}{c} = ? 원" if unit > 1 else f"1{c} = ? 원") for c, nm, flag, unit, _ in FX if hist.get("fx:" + c)]
+        usp += "<div style='margin-top:14px'>" + tiles(rest) + "</div>"
     us_items = [("s:" + t, nm, t) for t, nm in US_STOCKS if hist.get("s:" + t)]
     if us_items:
-        p.append("<div class='sec'><h2>🔎 미국 빅테크</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(us_items))
+        usp += "<div class='sec'><h2>🔎 빅테크</h2><span class='tag'>눌러서 차트 보기</span></div>" + stock_cards(us_items)
+    panes.append(("us", "🇺🇸 미국", usp))
 
+    # 원자재
     cm_items = [("cm:" + sym, nm, unit) for sym, nm, unit in COMMODITIES if hist.get("cm:" + sym)]
     if cm_items:
-        p.append("<div class='sec'><h2>🪙 원자재</h2><span class='tag'>국제 선물 · 눌러서 차트 보기</span></div>" + stock_cards(cm_items))
+        panes.append(("cm", "🪙 원자재", "<p class='hint'>국제 선물 근월물 종가 · 카드를 누르면 차트</p>" + stock_cards(cm_items)))
+
+    # 환율
+    fx_items = [("fx:" + c, f"{flag} {nm}", f"{unit}{c} 기준") for c, nm, flag, unit, _ in FX if hist.get("fx:" + c)]
     if fx_items:
-        p.append("<div class='sec'><h2>💱 환율</h2><span class='tag'>원화 기준 · 눌러서 차트 보기</span></div>" + stock_cards(fx_items).replace(" = ? 원", " 기준"))
+        panes.append(("fx", "💱 환율", "<p class='hint'>원화 기준 · 카드를 누르면 차트</p>" + stock_cards(fx_items)))
+
+    # 뉴스 + 지난 리포트
+    nw = ""
     if d.get("news"):
-        p.append("<div class='sec'><h2>📰 주요 뉴스</h2></div><div class='card news'><ul>" +
-                 "".join(f"<li><span class='t'>{esc(n.get('time', ''))}</span>{esc(n['title'])}</li>" for n in d["news"]) + "</ul></div>")
+        nw += "<div class='card news'><ul>" + "".join(f"<li><span class='t'>{esc(n.get('time', ''))}</span>{esc(n['title'])}</li>" for n in d["news"]) + "</ul></div>"
     if archive:
-        p.append("<div class='sec'><h2>🗂 지난 리포트</h2></div><div class='arch'>" +
-                 "".join(f"<a href='{SITE}reports/{a}.html'>{a}</a>" for a in archive) + "</div>")
-    p.append("<footer>지수·종목·환율·원자재 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer></main>")
+        nw += "<div class='sec'><h2>🗂 지난 리포트</h2></div><div class='arch'>" + "".join(f"<a href='{SITE}reports/{a}.html'>{a}</a>" for a in archive) + "</div>"
+    if nw:
+        panes.append(("news", "📰 뉴스", nw))
+
+    tabbar = ("<nav class='tabbar' role='tablist' aria-label='리포트 섹션'><div class='tb-in'>" +
+              "".join(f"<button role='tab' data-tab='{pid}' aria-selected='{'true' if i == 0 else 'false'}'>{nm}</button>" for i, (pid, nm, _) in enumerate(panes)) +
+              "</div></nav>")
+    body = "".join(f"<section class='pane' id='pane-{pid}' role='tabpanel' data-pane='{pid}'{'' if i == 0 else ' hidden'}>{h}</section>"
+                   for i, (pid, _, h) in enumerate(panes))
+    foot = "<footer>지수·종목·환율·원자재 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer>"
     data_json = json.dumps(hist, separators=(",", ":")).replace("</", "<\\/")
     return ("<!doctype html><html lang='ko'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
             f"<title>주식 리포트</title><meta name='description' content='{esc(title)}'>"
-            f"<meta property='og:title' content='📈 {esc(title)}'><meta property='og:description' content='KOSPI·KOSDAQ·NASDAQ·S&amp;P500 차트와 시장 요약'>"
-            f"<style>{CSS}</style></head><body>" + "".join(p) +
+            f"<meta property='og:title' content='📈 {esc(title)}'><meta property='og:description' content='국내·미국 지수, 종목, 원자재, 환율 차트'>"
+            f"<style>{CSS}</style></head><body>" + head + tabbar + "<main class='wrap'>" + body + foot + "</main>" +
             MODAL + f"<script type='application/json' id='chart-data'>{data_json}</script><script>{JS}</script></body></html>")
 
 
