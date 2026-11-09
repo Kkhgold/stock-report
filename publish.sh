@@ -2,8 +2,8 @@
 # 주식 리포트를 GitHub(공개 저장소 stock-report)에 올리고 GitHub Pages 를 켭니다.
 # 처음 한 번은 저장소를 만들고, 이후에는 변경분만 push 합니다.
 set -e
-GH="/c/Program Files/GitHub CLI/gh.exe"
-cd /c/Users/kkhss/Documents/stock-report
+GH="$(command -v gh || echo /c/Program Files/GitHub CLI/gh.exe)"
+cd "$(dirname "$0")"
 
 [ -d .git ] || git init -q -b main
 printf 'kakao.txt\n__pycache__/\n' > .gitignore

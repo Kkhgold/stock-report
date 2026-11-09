@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-09",
+  "weekday": "월요일",
+  "generated_at": "11:00",
+  "summary": [
+    "코스피 -0.8%(5,018.85), 코스닥 -0.8%(638.97) 동반 약세 · 코스피 하락 530개 vs 상승 340개",
+    "SK하이닉스 -1.2%, 삼성전자 -0.8% 반도체 대형주 약세, 인버스 ETF 거래대금 상위",
+    "삼성SDI -12.1%, HD현대에너지솔루션 -10.5% 등 2차전지·에너지주 급락",
+    "美 금요일 나스닥 +1.1%, S&P500 +0.3% · 원/달러 1,350원으로 6원 하락"
+  ],
+  "indices": [
+    {"name": "KOSPI", "price": 5018.85, "change": -40.84, "rate": -0.81},
+    {"name": "KOSDAQ", "price": 638.97, "change": -5.3, "rate": -0.82}
+  ],
+  "us": [
+    {"name": "S&P 500", "price": 7376.86, "change": 23.13, "rate": 0.31},
+    {"name": "NASDAQ", "price": 24579.43, "change": 264.43, "rate": 1.09},
+    {"name": "Dow", "price": 51285.73, "change": -237.33, "rate": -0.46},
+    {"name": "원/달러", "price": 1350.33, "change": -6.01, "rate": -0.44}
+  ],
+  "top_value": [
+    {"name": "SK하이닉스", "code": "000660", "market": "KOSPI", "price": 1118000, "rate": -1.24},
+    {"name": "삼성전자", "code": "005930", "market": "KOSPI", "price": 187200, "rate": -0.79},
+    {"name": "KODEX 200", "code": "069500", "market": "KOSPI", "price": 78490, "rate": -0.65},
+    {"name": "KODEX 200선물인버스2X", "code": "252670", "market": "KOSPI", "price": 128, "rate": 2.4},
+    {"name": "KODEX 인버스", "code": "114800", "market": "KOSPI", "price": 1352, "rate": 0.82},
+    {"name": "KODEX 레버리지", "code": "122630", "market": "KOSPI", "price": 53665, "rate": -1.46}
+  ],
+  "gainers": [
+    {"name": "아시아나IDT", "code": "267850", "market": "KOSPI", "price": 14130, "rate": 29.99},
+    {"name": "유니퀘스트", "code": "077500", "market": "KOSPI", "price": 10140, "rate": 14.58},
+    {"name": "한화비전", "code": "489790", "market": "KOSPI", "price": 40400, "rate": 6.04},
+    {"name": "대구백화점", "code": "006370", "market": "KOSPI", "price": 2580, "rate": 5.74},
+    {"name": "체시스", "code": "033250", "market": "KOSPI", "price": 4555, "rate": 5.56}
+  ],
+  "losers": [
+    {"name": "코아스", "code": "071950", "market": "KOSPI", "price": 751, "rate": -20.61},
+    {"name": "진양화학", "code": "051630", "market": "KOSPI", "price": 3500, "rate": -14.22},
+    {"name": "삼성SDI", "code": "006400", "market": "KOSPI", "price": 411500, "rate": -12.07},
+    {"name": "한국앤컴퍼니", "code": "000240", "market": "KOSPI", "price": 21700, "rate": -11.61},
+    {"name": "HD현대에너지솔루션", "code": "322000", "market": "KOSPI", "price": 77500, "rate": -10.51}
+  ],
+  "news": [
+    {"time": "18:35", "title": "HD한국조선해양, 6629억 LNG운반석 2척 수주"},
+    {"time": "18:32", "title": "삼성重, 선박·데이터센터 전력시장 공략"},
+    {"time": "18:36", "title": "\"이사를 안가요\" 주택거래 줄어 가구 업계 1위 흑자 간신히 지켰다"},
+    {"time": "18:37", "title": "[IR일정] DB하이텍, 2026년 3분기 경영실적"},
+    {"time": "18:35", "title": "[IR일정] 코웨이, 2026년 3분기 실적"}
+  ]
+}
