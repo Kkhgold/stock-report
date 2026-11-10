@@ -488,6 +488,11 @@ def render(d, archive, hist):
     sm += quick_tile(hist, "cm:GC=F", "🥇 금 ($/oz)", "cm") + quick_tile(hist, "cm:CL=F", "🛢 WTI ($/bbl)", "cm")
     sm += quick_tile(hist, "co:BTC-KRW", "₿ 비트코인 (원)", "coin", 0) + quick_tile(hist, "co:ETH-KRW", "Ξ 이더리움 (원)", "coin", 0)
     sm += "</div>"
+    w_items = [("s:" + kr_symbol(r), r["name"], r["code"]) for r in d.get("watch_kr", []) if hist.get("s:" + kr_symbol(r))]
+    w_items += [("s:" + r["ticker"], r["name"], r["ticker"] + " · 미국") for r in d.get("watch_us", []) if hist.get("s:" + r["ticker"])]
+    if w_items:
+        sm += ("<div class='sec'><h2>⭐ 관심종목</h2><span class='tag'>watchlist.txt 에서 추가·삭제</span></div>"
+               + stock_cards(w_items))
     panes.append(("home", "📋 요약", sm))
 
     # 국내
@@ -547,7 +552,7 @@ def render(d, archive, hist):
               "</div></nav>")
     body = "".join(f"<section class='pane' id='pane-{pid}' role='tabpanel' data-pane='{pid}'{'' if i == 0 else ' hidden'}>{h}</section>"
                    for i, (pid, _, h) in enumerate(panes))
-    foot = "<footer>지수·종목·코인·환율·원자재 차트: Yahoo Finance · 시세·순위·뉴스: 한국투자증권(KIS)·PlayMCP<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer>"
+    foot = "<footer>지수·종목·코인·환율·원자재 차트: Yahoo Finance · 시세·순위·뉴스: 네이버 금융<br>투자 판단의 참고용이며 투자 권유가 아닙니다.</footer>"
     data_json = json.dumps(hist, separators=(",", ":")).replace("</", "<\\/")
     return ("<!doctype html><html lang='ko'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width, initial-scale=1'>"
@@ -563,6 +568,9 @@ def kakao_text(d):
     us = f"🇺🇸 나스닥 {pct(nas.get('rate'))}" if nas else ""
     top = ", ".join(f"{r['name']} {pct(r.get('rate'))}" for r in d.get("top_value", [])[:2])
     head = f"📈 {d['date'][5:].replace('-', '/')} 주식 리포트\n🇰🇷 {idx}\n{us}\n💰 {top}\n"
+    w = d.get("watch_kr", []) + d.get("watch_us", [])
+    if w:
+        head += "⭐ " + ", ".join(f"{r['name']} {pct(r.get('rate'))}" for r in w[:3]) + "\n"
     tail = f"📊 차트 보기 {SITE}"
     room = 195 - len(head) - len(tail)
     summ = (d.get("summary") or [""])[0]
@@ -587,7 +595,12 @@ def main():
         sym = kr_symbol(r)
         if sym and sym not in syms:
             syms.append(sym)
-    syms += [t for t, _ in US_STOCKS]
+    for r in d.get("watch_kr", []):
+        sym = kr_symbol(r)
+        if sym and sym not in syms:
+            syms.append(sym)
+    syms += [r["ticker"] for r in d.get("watch_us", []) if r["ticker"] not in syms]
+    syms += [t for t, _ in US_STOCKS if t not in syms]
     for sym in syms:
         try:
             hist["s:" + sym] = fetch_history(sym, ohlc=True)

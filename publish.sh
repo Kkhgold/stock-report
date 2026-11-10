@@ -13,7 +13,7 @@ git -c user.name="Kkhgold" -c user.email="kkhssam3@gmail.com" commit -q -m "Stoc
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" || echo "(변경 없음)"
 
 if ! git remote get-url origin >/dev/null 2>&1; then
-  "$GH" repo create stock-report --public --source . --push --description "평일 11시 주식 리포트"
+  "$GH" repo create stock-report --public --source . --push --description "평일 9시 30분 주식 리포트"
   "$GH" api -X POST repos/Kkhgold/stock-report/pages -f "source[branch]=main" -f "source[path]=/" >/dev/null
 else
   git push -q origin main

@@ -1,0 +1,247 @@
+{
+  "date": "2026-11-10",
+  "weekday": "화요일",
+  "generated_at": "10:26",
+  "summary": [
+    "코스피 +4.0%(5,220.98), 코스닥 +4.2%(665.96)",
+    "거래대금 상위: SK하이닉스 +6.2%, 삼성전자 +4.3%, KODEX 200 +4.2%",
+    "급등 예선테크 +30.0% · 급락 애드바이오텍 -24.8%",
+    "美 전일 나스닥 +2.7%, S&P500 +2.4% · 원/달러 1,344원",
+    "⭐ 관심: 삼성전자 +4.3%, SK하이닉스 +6.2%, 현대차 +2.0%, NAVER +3.6%, 카카오 0.0%"
+  ],
+  "indices": [
+    {
+      "name": "KOSPI",
+      "price": 5220.98,
+      "change": 202.13,
+      "rate": 4.03
+    },
+    {
+      "name": "KOSDAQ",
+      "price": 665.96,
+      "change": 26.99,
+      "rate": 4.22
+    }
+  ],
+  "us": [
+    {
+      "name": "S&P 500",
+      "price": 7549.94,
+      "change": 173.08,
+      "rate": 2.35
+    },
+    {
+      "name": "NASDAQ",
+      "price": 25253.14,
+      "change": 673.71,
+      "rate": 2.74
+    },
+    {
+      "name": "Dow",
+      "price": 52389.75,
+      "change": 1104.02,
+      "rate": 2.15
+    },
+    {
+      "name": "원/달러",
+      "price": 1344.08,
+      "change": -18.62,
+      "rate": -1.37
+    }
+  ],
+  "top_value": [
+    {
+      "name": "SK하이닉스",
+      "code": "000660",
+      "market": "KOSPI",
+      "price": 1206000.0,
+      "rate": 6.16
+    },
+    {
+      "name": "삼성전자",
+      "code": "005930",
+      "market": "KOSPI",
+      "price": 198000.0,
+      "rate": 4.27
+    },
+    {
+      "name": "KODEX 200",
+      "code": "069500",
+      "market": "KOSPI",
+      "price": 81815.0,
+      "rate": 4.24
+    },
+    {
+      "name": "KODEX 레버리지",
+      "code": "122630",
+      "market": "KOSPI",
+      "price": 58115.0,
+      "rate": 8.29
+    },
+    {
+      "name": "KODEX 인버스",
+      "code": "114800",
+      "market": "KOSPI",
+      "price": 1295.0,
+      "rate": -4.22
+    },
+    {
+      "name": "KODEX 200선물인버스2X",
+      "code": "252670",
+      "market": "KOSPI",
+      "price": 117.0,
+      "rate": -8.59
+    }
+  ],
+  "gainers": [
+    {
+      "name": "예선테크",
+      "code": "250930",
+      "market": "KOSDAQ",
+      "price": 1170.0,
+      "rate": 30.0
+    },
+    {
+      "name": "메타랩스",
+      "code": "090370",
+      "market": "KOSPI",
+      "price": 1232.0,
+      "rate": 29.96
+    },
+    {
+      "name": "아시아나IDT",
+      "code": "267850",
+      "market": "KOSPI",
+      "price": 18360.0,
+      "rate": 29.94
+    },
+    {
+      "name": "바이오인프라",
+      "code": "199730",
+      "market": "KOSDAQ",
+      "price": 1472.0,
+      "rate": 29.92
+    },
+    {
+      "name": "썸에이지",
+      "code": "208640",
+      "market": "KOSDAQ",
+      "price": 834.0,
+      "rate": 29.91
+    }
+  ],
+  "losers": [
+    {
+      "name": "애드바이오텍",
+      "code": "179530",
+      "market": "KOSDAQ",
+      "price": 709.0,
+      "rate": -24.81
+    },
+    {
+      "name": "이렘",
+      "code": "009730",
+      "market": "KOSDAQ",
+      "price": 2115.0,
+      "rate": -12.6
+    },
+    {
+      "name": "에코캡",
+      "code": "128540",
+      "market": "KOSDAQ",
+      "price": 912.0,
+      "rate": -11.8
+    },
+    {
+      "name": "윙스풋",
+      "code": "335870",
+      "market": "KOSDAQ",
+      "price": 3255.0,
+      "rate": -11.55
+    },
+    {
+      "name": "아이비젼웍스",
+      "code": "469750",
+      "market": "KOSDAQ",
+      "price": 3615.0,
+      "rate": -10.63
+    }
+  ],
+  "watch_kr": [
+    {
+      "name": "삼성전자",
+      "code": "005930",
+      "market": "KOSPI",
+      "price": 198000.0,
+      "rate": 4.27
+    },
+    {
+      "name": "SK하이닉스",
+      "code": "000660",
+      "market": "KOSPI",
+      "price": 1206000.0,
+      "rate": 6.16
+    },
+    {
+      "name": "현대차",
+      "code": "005380",
+      "market": "KOSPI",
+      "price": 277000.0,
+      "rate": 2.03
+    },
+    {
+      "name": "NAVER",
+      "code": "035420",
+      "market": "KOSPI",
+      "price": 193900.0,
+      "rate": 3.63
+    },
+    {
+      "name": "카카오",
+      "code": "035720",
+      "market": "KOSPI",
+      "price": 32100.0,
+      "rate": 0.0
+    }
+  ],
+  "watch_us": [
+    {
+      "name": "NVDA",
+      "ticker": "NVDA",
+      "price": 178.67,
+      "rate": -4.27
+    },
+    {
+      "name": "TSLA",
+      "ticker": "TSLA",
+      "price": 378.05,
+      "rate": 5.54
+    }
+  ],
+  "news": [
+    {
+      "time": "10:12",
+      "title": "\"몸값 낮춰서라도\"…앤트로픽, 시장 한파에도 상장 '승부수'"
+    },
+    {
+      "time": "09:58",
+      "title": "기술주 다 올랐는데 엔비디아만 '뚝'...하루 새 시총 258조 증발"
+    },
+    {
+      "time": "09:54",
+      "title": "486만원 넘던 황제주였는데, 고점서 68% 추락한 ‘이 종목’…증권사도 목표가 줄하향"
+    },
+    {
+      "time": "09:46",
+      "title": "“손해 배상하라” 젠슨 황, 주주들에게 집단소송 당했다…엔비디아 시총 260조원 증발"
+    },
+    {
+      "time": "09:41",
+      "title": "간만에 급등 출발 ‘매수 사이드카’…삼전닉스 5~8%↑[투자360]"
+    },
+    {
+      "time": "09:40",
+      "title": "'블루쓰나미' 충격딛고 4~5%↑…코스피·코스닥, 매수 사이드카(종합)"
+    }
+  ]
+}
