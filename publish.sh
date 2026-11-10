@@ -6,7 +6,7 @@ GH="$(command -v gh || echo /c/Program Files/GitHub CLI/gh.exe)"
 cd "$(dirname "$0")"
 
 [ -d .git ] || git init -q -b main
-printf 'kakao.txt\n__pycache__/\n' > .gitignore
+printf 'kakao.txt\n__pycache__/\nkospi.txt\n' > .gitignore
 git add -A
 git -c user.name="Kkhgold" -c user.email="kkhssam3@gmail.com" commit -q -m "Stock report $(date +%Y-%m-%d)
 
