@@ -1,0 +1,247 @@
+{
+  "date": "2026-11-23",
+  "weekday": "월요일",
+  "generated_at": "09:30",
+  "summary": [
+    "코스피 -3.3%(4,708.07), 코스닥 -1.5%(635.71)",
+    "거래대금 상위: SK하이닉스 -2.8%, 삼성전자 -3.7%, KODEX 200 -3.2%",
+    "급등 큐로셀 +29.9% · 급락 크라우드웍스 -29.8%",
+    "美 전일 나스닥 -5.3%, S&P500 -3.7% · 원/달러 1,339원",
+    "⭐ 관심: 삼성전자 -4.0%, SK하이닉스 -3.4%, 현대차 -3.7%, NAVER -6.6%, 카카오 -4.7%"
+  ],
+  "indices": [
+    {
+      "name": "KOSPI",
+      "price": 4708.07,
+      "change": -161.89,
+      "rate": -3.32
+    },
+    {
+      "name": "KOSDAQ",
+      "price": 635.71,
+      "change": -9.97,
+      "rate": -1.54
+    }
+  ],
+  "us": [
+    {
+      "name": "S&P 500",
+      "price": 6910.39,
+      "change": -265.44,
+      "rate": -3.7
+    },
+    {
+      "name": "NASDAQ",
+      "price": 22617.73,
+      "change": -1261.47,
+      "rate": -5.28
+    },
+    {
+      "name": "Dow",
+      "price": 48147.33,
+      "change": -949.73,
+      "rate": -1.93
+    },
+    {
+      "name": "원/달러",
+      "price": 1338.58,
+      "change": 3.79,
+      "rate": 0.28
+    }
+  ],
+  "top_value": [
+    {
+      "name": "SK하이닉스",
+      "code": "000660",
+      "market": "KOSPI",
+      "price": 1082000.0,
+      "rate": -2.79
+    },
+    {
+      "name": "삼성전자",
+      "code": "005930",
+      "market": "KOSPI",
+      "price": 176300.0,
+      "rate": -3.71
+    },
+    {
+      "name": "KODEX 200",
+      "code": "069500",
+      "market": "KOSPI",
+      "price": 73730.0,
+      "rate": -3.25
+    },
+    {
+      "name": "KODEX 200선물인버스2X",
+      "code": "252670",
+      "market": "KOSPI",
+      "price": 140.0,
+      "rate": 6.06
+    },
+    {
+      "name": "KODEX 인버스",
+      "code": "114800",
+      "market": "KOSPI",
+      "price": 1429.0,
+      "rate": 3.4
+    },
+    {
+      "name": "KODEX 레버리지",
+      "code": "122630",
+      "market": "KOSPI",
+      "price": 46605.0,
+      "rate": -6.65
+    }
+  ],
+  "gainers": [
+    {
+      "name": "큐로셀",
+      "code": "372320",
+      "market": "KOSDAQ",
+      "price": 27550.0,
+      "rate": 29.95
+    },
+    {
+      "name": "애드바이오텍",
+      "code": "179530",
+      "market": "KOSDAQ",
+      "price": 627.0,
+      "rate": 29.81
+    },
+    {
+      "name": "휴림에이텍",
+      "code": "078590",
+      "market": "KOSDAQ",
+      "price": 2765.0,
+      "rate": 29.81
+    },
+    {
+      "name": "금양그린파워",
+      "code": "282720",
+      "market": "KOSDAQ",
+      "price": 9190.0,
+      "rate": 24.19
+    },
+    {
+      "name": "뷰티스킨",
+      "code": "406820",
+      "market": "KOSDAQ",
+      "price": 2315.0,
+      "rate": 23.8
+    }
+  ],
+  "losers": [
+    {
+      "name": "크라우드웍스",
+      "code": "355390",
+      "market": "KOSDAQ",
+      "price": 569.0,
+      "rate": -29.75
+    },
+    {
+      "name": "남성",
+      "code": "004270",
+      "market": "KOSPI",
+      "price": 2965.0,
+      "rate": -17.41
+    },
+    {
+      "name": "제이케이시냅스",
+      "code": "060230",
+      "market": "KOSDAQ",
+      "price": 776.0,
+      "rate": -16.38
+    },
+    {
+      "name": "엘디티",
+      "code": "096870",
+      "market": "KOSDAQ",
+      "price": 1820.0,
+      "rate": -16.13
+    },
+    {
+      "name": "동일스틸럭스",
+      "code": "023790",
+      "market": "KOSDAQ",
+      "price": 1306.0,
+      "rate": -15.19
+    }
+  ],
+  "watch_kr": [
+    {
+      "name": "삼성전자",
+      "code": "005930",
+      "market": "KOSPI",
+      "price": 175700.0,
+      "rate": -4.04
+    },
+    {
+      "name": "SK하이닉스",
+      "code": "000660",
+      "market": "KOSPI",
+      "price": 1075000.0,
+      "rate": -3.41
+    },
+    {
+      "name": "현대차",
+      "code": "005380",
+      "market": "KOSPI",
+      "price": 245500.0,
+      "rate": -3.73
+    },
+    {
+      "name": "NAVER",
+      "code": "035420",
+      "market": "KOSPI",
+      "price": 150900.0,
+      "rate": -6.62
+    },
+    {
+      "name": "카카오",
+      "code": "035720",
+      "market": "KOSPI",
+      "price": 29550.0,
+      "rate": -4.68
+    }
+  ],
+  "watch_us": [
+    {
+      "name": "NVDA",
+      "ticker": "NVDA",
+      "price": 125.53,
+      "rate": -14.01
+    },
+    {
+      "name": "TSLA",
+      "ticker": "TSLA",
+      "price": 345.82,
+      "rate": -7.64
+    }
+  ],
+  "news": [
+    {
+      "time": "09:20",
+      "title": "‘긴급 대책’ 통했나… 코스피 블랙먼데이 우려 딛고 ‘선방’ 출발 [이런국장 저런주식]"
+    },
+    {
+      "time": "09:18",
+      "title": "\"지금 뭘 사야 하죠?\"…월가 전문가들조차 입 다물었다"
+    },
+    {
+      "time": "09:11",
+      "title": "코스피, 또 4700선 추락…외인·기관 ‘사자’에 하단 방어 시도"
+    },
+    {
+      "time": "09:07",
+      "title": "“코스피 46% 추락했지만 지금은 팔 때 아니다”…한국투자증권, 증안펀드 효과 주목"
+    },
+    {
+      "time": "09:05",
+      "title": "\"내년 코스피 4000~7300, 젠슨황 청문회 후 AI 투심 1차 관건 포인트\""
+    },
+    {
+      "time": "09:04",
+      "title": "美증시 급락에도 저가매수 '머뭇'…\"반등 촉매 안 보인다\""
+    }
+  ]
+}
